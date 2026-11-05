@@ -1,0 +1,37 @@
+{
+  "exported_at": "2026-11-05T17:47:57.830684+08:00",
+  "timezone": "Asia/Shanghai",
+  "scope": "PCIe/NVMe project conversations before the GitHub upload request",
+  "format": "visible-conversation-export-v1",
+  "secret_redactions": 0,
+  "sessions": [
+    {
+      "session_id": "01a162b5-5e6c-7fc0-8438-06545ea302a7",
+      "title": "RK3588 PCIe Host 驱动与设备树",
+      "markdown": "2026-10-22-rk3588-pcie-host.md",
+      "jsonl": "2026-10-22-rk3588-pcie-host.jsonl",
+      "message_counts": {
+        "user": 2,
+        "assistant": 4
+      },
+      "sha256": {
+        "markdown": "bba0729aaadc0a309818c693621cd13d65f990f63ef3f52ea232459cb943e10e",
+        "jsonl": "2ef1460e01117d7e94ad0dccd85d26fa2c5859b1dabac20cd7aaf7f444c08be5"
+      }
+    },
+    {
+      "session_id": "01a19b76-4c8d-7b00-8b42-ffb5dc7e6bf4",
+      "title": "NVMe PCI 驱动框架学习",
+      "markdown": "2026-11-02-nvme-pcie-learning.md",
+      "jsonl": "2026-11-02-nvme-pcie-learning.jsonl",
+      "message_counts": {
+        "user": 6,
+        "assistant": 16
+      },
+      "sha256": {
+        "markdown": "533855825bece37cd3caa912bbe0b0847f9befdb769c23a0686a6e5e5a7013d3",
+        "jsonl": "1a318224fc044c28b9e7bc24bd406cfaba5feeca27b98871c4a134f9c4a1d1e8"
+      }
+    }
+  ]
+}

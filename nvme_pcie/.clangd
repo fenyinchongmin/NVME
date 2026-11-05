@@ -1,0 +1,10 @@
+# 只配置当前学习模块，使用 Makefile 生成的真实内核编译参数。
+CompileFlags:
+  CompilationDatabase: .
+  # Kbuild 使用 gcc-wrapper.py；显式告诉 clangd 实际的交叉编译器。
+  Compiler: /usr/bin/aarch64-linux-gnu-gcc
+  # 仅调整编辑器解析：clang 使用默认 AArch64 ABI，不接受 GCC 的 lp64 名称。
+  # 实际 make 编译仍完整使用 compile_commands.json 中的 GCC 参数。
+  Remove:
+    - -mabi=*
+    - -fconserve-stack

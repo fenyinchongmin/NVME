@@ -19,3 +19,6 @@ compile_commands.json
 *~
 *.swp
 *.swo
+
+# Track the portable clangd setup for the learning module.
+!nvme_pcie/.clangd

@@ -1,5 +1,10 @@
 # NVME：RK3588 PCIe/NVMe 观察模块
 
+本分支新增 [nvme_pcie 驱动框架练习](nvme_pcie/README.md)，
+对应本地 SDK 的 `nvme_pcie/` 源码；构建该模块时请显式指定 `KDIR`。
+[Codex 会话存档](docs/codex/README.md) 包含相关 PCIe/NVMe 学习对话。
+下面继续说明根目录原有的 `nvme_pcie_obs` 观察模块。
+
 面向鲁班猫 5 BTB（RK3588）的 Linux 内核模块学习项目。
 当前模块 `nvme_pcie_obs` 根据 PCI 地址查找设备，在内核日志中输出：
 
