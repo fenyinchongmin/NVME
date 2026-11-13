@@ -12,8 +12,9 @@ else
 # 使用本 Makefile 所在目录定位模块，避免依赖调用 make 时的工作目录。
 MODULE_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
-# SDK 已配置并编译过的内核目录。可以通过 make KDIR=其他目录 覆盖。
-KDIR ?= $(abspath $(MODULE_DIR)/../kernel)
+# 模块位于 SDK/NVME/nvme_pcie，向上两级定位 SDK 内核目录。
+# 可以通过 make KDIR=其他目录 覆盖。
+KDIR ?= $(abspath $(MODULE_DIR)/../../kernel)
 
 # 目标是 ARM64 开发板；编译器命令由此前缀与 gcc、ld 等名称组成。
 # 例如：aarch64-linux-gnu-gcc。命令行传入的值优先于这些默认值。
