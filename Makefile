@@ -1,39 +1,43 @@
+# 内核构建系统递归读取本文件时，会设置 KERNELRELEASE。
 ifneq ($(KERNELRELEASE),)
-# Kbuild：每个 obj-m 目标生成一个 .ko。
-obj-m := nvme_pcie_obs.o
 
-# 多个 .c 组成一个模块的示例（替换上面的 obj-m）：
-# obj-m := nvme_obs.o
-# nvme_obs-y := nvme_pcie_obs.o pcie_regs.o
+# 将 nvme_pcie.c 编译为可加载模块 nvme_pcie.ko。
+obj-m += nvme_pcie.o
+
+# make clean 时，一并清理为编辑器生成的编译参数数据库。
+clean-files += compile_commands.json
 
 else
-# x86_64 是开发主机；RK3588 的目标架构是 ARM64。
-KERNEL_DIR ?= $(abspath ../kernel)
+
+# 使用本 Makefile 所在目录定位模块，避免依赖调用 make 时的工作目录。
+MODULE_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+
+# SDK 已配置并编译过的内核目录。可以通过 make KDIR=其他目录 覆盖。
+KDIR ?= $(abspath $(MODULE_DIR)/../kernel)
+
+# 目标是 ARM64 开发板；编译器命令由此前缀与 gcc、ld 等名称组成。
+# 例如：aarch64-linux-gnu-gcc。命令行传入的值优先于这些默认值。
 ARCH ?= arm64
 CROSS_COMPILE ?= aarch64-linux-gnu-
 PYTHON ?= python3
 
-# 如有其他外部模块目录，在这里追加绝对路径，一并保留其索引。
-# EXTRA_MODULE_DIRS := $(abspath ../another_driver)
-EXTRA_MODULE_DIRS ?=
+.PHONY: all modules compile_commands clean
 
-export ARCH CROSS_COMPILE
+# 直接执行 make：先编译模块，再更新 clangd 使用的编译参数数据库。
+all: compile_commands
 
-.PHONY: all modules index clean
-
-# 默认先编译成功，再更新 clangd 数据库；make -j 时也保持此顺序。
-all: modules
-	$(MAKE) index
-
+# -C 切换到内核目录；M 指定外部模块目录。
+# 内核构建系统负责头文件、配置宏、编译和链接参数，无需手工调用 gcc。
 modules:
-	$(MAKE) -C "$(KERNEL_DIR)" M="$(CURDIR)" modules
+	$(MAKE) -C "$(KDIR)" M="$(MODULE_DIR)" ARCH="$(ARCH)" CROSS_COMPILE="$(CROSS_COMPILE)" modules
 
-# 从已有的 Kbuild .cmd 文件提取实际参数，不重新编译整个内核。
-index:
-	$(PYTHON) "$(KERNEL_DIR)/scripts/clang-tools/gen_compile_commands.py" \
-		-d "$(KERNEL_DIR)" -o "$(KERNEL_DIR)/compile_commands.json" \
-		"$(KERNEL_DIR)" "$(CURDIR)" $(EXTRA_MODULE_DIRS)
+# 从本模块的 .cmd 文件提取真实编译命令，只收集当前模块。
+# -d 必须是内核构建目录，因为命令中的相对头文件路径以该目录为基准。
+compile_commands: modules
+	$(PYTHON) "$(KDIR)/scripts/clang-tools/gen_compile_commands.py" -d "$(KDIR)" -o "$(MODULE_DIR)/compile_commands.json" "$(MODULE_DIR)"
 
+# 清理当前模块的构建产物，不清理整棵内核树。
 clean:
-	$(MAKE) -C "$(KERNEL_DIR)" M="$(CURDIR)" clean
+	$(MAKE) -C "$(KDIR)" M="$(MODULE_DIR)" ARCH="$(ARCH)" CROSS_COMPILE="$(CROSS_COMPILE)" clean
+
 endif

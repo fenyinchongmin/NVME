@@ -3,6 +3,8 @@
 #include <linux/pci.h>
 #include <linux/slab.h>
 #include <linux/nvme.h>
+#include <linux/io.h>
+#include <linux/io-64-nonatomic-lo-hi.h>
 
 struct nvme_dev;
 struct nvme_queue;
@@ -28,7 +30,13 @@ static const struct pci_device_id lab_nvme_ids[] =
 };
 MODULE_DEVICE_TABLE(pci, lab_nvme_ids);
 
+static int lab_nvme_pci_enable(struct nvme_dev *dev)
+{
+    
 
+    return 0;
+
+}
 static int lab_nvme_dev_map(struct nvme_dev *dev)
 {
 	struct pci_dev *pdev = to_pci_dev(dev->dev);
@@ -62,22 +70,64 @@ static int lab_nvme_dev_map(struct nvme_dev *dev)
 /* 先定义回调，再在下面的 pci_driver 中引用它们。 */
 static int lab_nvme_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
-    int result = -ENOMEM;
+    int ret;
     struct nvme_dev *dev;
+    u64 cap;
+    u32 vs, csts;
+
+    /* 1. 分配驱动私有状态。 */
     dev = kzalloc(sizeof(*dev), GFP_KERNEL);
     if (!dev)
         return -ENOMEM;
     dev->dev = &pdev->dev;
-    pci_set_drvdata(pdev, dev);
 
+    /* 2. 使能 PCI 内存资源。 */
+    /* 使能失败：只需要释放前面分配的 dev。 */
+    ret = lab_nvme_pci_enable(dev);/*以后写，暂定*/
+    ret = pci_enable_device_mem(pdev);
+    if (ret)
+        dev_err(&pdev->dev, "[S1] PCI enable failed: %d\n", ret);
+        goto err_free;
 
-    result = lab_nvme_dev_map(dev);
+    /* 3. 申请 BAR0 并建立映射。 */
+    /* 映射失败：还需要撤销已经成功的 PCI 使能。 */
+    ret = lab_nvme_dev_map(dev);
+    if (ret)
+        goto err_disable;
+
+    /*
+    * 到这里，PCI 使能和 BAR0 映射均已成功。
+    * 后续在这里添加寄存器读取。
+    */
+    /* 4. 验证并读取寄存器。 */
+    csts = readl(dev->bar + NVME_REG_CSTS);
+    if (csts == 0xffffffff) {
+        dev_err(&pdev->dev, "NVMe controller not responding\n");
+        ret = -ENODEV;
+        goto err_unmap;
+    }
+    cap = lo_hi_readq(dev->bar + NVME_REG_CAP);
+    vs = readl(dev->bar + NVME_REG_VS);
+
+    dev_info(&pdev->dev, "CAP=%#llx VS=%#x CSTS=%#x\n",
+             (unsigned long long)cap, vs, csts);
+
     dev_info(&pdev->dev, "NVMe probe: vendor=%04x device=%04x\n",
              pdev->vendor, pdev->device);
     
-    
+    pci_set_drvdata(pdev, dev);
     /* 返回 0 表示绑定成功；后续在这里添加 PCI 使能和 BAR0 映射。 */
     return 0;
+ err_unmap:
+    pci_iounmap(pdev, dev->bar);
+    pci_release_region(pdev, 0);
+ err_disable:
+    pci_disable_device(pdev);
+ err_free:
+	kfree(dev->queues);
+	kfree(dev);
+	return ret;
+
 }
 
 static void lab_nvme_remove(struct pci_dev *pdev)
